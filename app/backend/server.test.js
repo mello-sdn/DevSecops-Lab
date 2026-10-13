@@ -7,15 +7,23 @@ import Product from './models/productModel.js';
 let mongoServer;
 
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
+  mongoServer = await MongoMemoryServer.create({
+    instance: {
+      dbName: 'test',
+      args: ['--noauth'],
+    },
+    binary: {
+      version: '7.0.0',
+    },
+  });
   const uri = mongoServer.getUri();
   await mongoose.connect(uri);
-});
+}, 120000);
 
 afterAll(async () => {
   await mongoose.disconnect();
   await mongoServer.stop();
-});
+}, 30000);
 
 afterEach(async () => {
   const collections = mongoose.connection.collections;
