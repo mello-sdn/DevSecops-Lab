@@ -8,23 +8,23 @@ on:
 jobs:
   run-tests:
     runs-on: ubuntu-latest
+    services:
+      mongodb:
+        image: mongo:6.0
+        ports: ["27017:27017"]
+        options: --health-cmd="mongosh --eval 'db.adminCommand(\"ping\")'" --health-interval=10s --health-timeout=5s --health-retries=5
     steps:
       - uses: actions/checkout@v4
       - name: install node.js 
         uses: actions/setup-node@v4
         with:
           node-version: '26'
-      - name: install libssl1.1 (for mongodb-memory-server)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y wget gnupg
-          wget -qO- https://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2_amd64.deb -O /tmp/libssl1.1.deb
-          sudo dpkg -i /tmp/libssl1.1.deb
       - name: install dependencies
         run: cd app/backend && npm ci
       - name: launch tests
         run: cd app/backend && npm test
         env:
+          MONGO_URI: mongodb://localhost:27017/test
           STRIPE_SECRET_KEY: "sk_test_mockup"
           JWT_SECRET: "sk_test_jwt"
 
