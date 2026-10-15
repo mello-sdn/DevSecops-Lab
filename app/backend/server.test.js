@@ -1,28 +1,25 @@
-import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
 import supertest from 'supertest';
 import { app } from './server.js';
 import Product from './models/productModel.js';
 
-let mongoServer;
+// Use MongoDB from docker-compose (local) or service container (CI)
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/test';
 
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  const uri = mongoServer.getUri();
-  await mongoose.connect(uri);
-});
+  await mongoose.connect(MONGO_URI);
+}, 120000);
 
 afterAll(async () => {
   await mongoose.disconnect();
-  await mongoServer.stop();
-});
+}, 30000);
 
 afterEach(async () => {
   const collections = mongoose.connection.collections;
   for (const key in collections) {
     await collections[key].deleteMany({});
   }
-});
+}, 10000);
 
 describe('Inscription et Authentification', () => {
   it('1. Inscription - POST /api/v1/users renvoie 201 et les infos utilisateur', async () => {

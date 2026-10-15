@@ -1,4 +1,4 @@
-FROM node:26-alpine AS builder 
+FROM node:26-alpine@sha256:143494b1da2945f061539253adc65e4f1569ddf07da2d384c022c791a9d90a4a AS builder
 
 WORKDIR /app
 
@@ -6,15 +6,14 @@ COPY package*.json ./
 
 RUN npm ci --omit=dev
 
-FROM node:26-alpine
+FROM node:26-alpine@sha256:143494b1da2945f061539253adc65e4f1569ddf07da2d384c022c791a9d90a4a
 
 ENV NODE_ENV=production
 
-RUN npm install -g npm@12.0.1 && \
-    npm install -g brace-expansion@5.0.8 && \
-    rm -rf /usr/local/lib/node_modules/npm/node_modules/brace-expansion && \
-    cp -r /usr/local/lib/node_modules/brace-expansion /usr/local/lib/node_modules/npm/node_modules/brace-expansion && \
-    npm uninstall -g brace-expansion
+# Remove vulnerable global npm modules
+RUN rm -rf /usr/local/lib/node_modules/npm/node_modules/brace-expansion \
+           /usr/local/lib/node_modules/npm/node_modules/undici \
+           /usr/local/lib/node_modules/npm/node_modules/http-cache-semantics
 
 WORKDIR /app
 
