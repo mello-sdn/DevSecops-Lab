@@ -1,7 +1,7 @@
 services:
 
   database:
-    image: mongo:6.0
+    image: mongo:7.0@sha256:8bb4442761a63a8dda452744082cdac9644b429807eb977b42324a63cef59ca4
     ports:
       - "27017:27017"
     volumes:
@@ -45,7 +45,7 @@ services:
 
   seeder:
       image: app_backend 
-      command: npm run seed  
+      command: ["node", "seeder.js"]
       env_file: app/backend/.env
       environment:
         - MONGO_URI=mongodb://database:27017/app

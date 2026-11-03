@@ -10,7 +10,7 @@
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
-    "axios": "^1.6.2",
+    "axios": "^1.20.0",
     "bootstrap": "^5.3.2",
     "react": "^18.2.0",
     "react-bootstrap": "^2.9.1",
@@ -48,5 +48,11 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "overrides": {
+    "postcss": "^8.5.18",
+    "serialize-javascript": "^7.0.3",
+    "svgo": "^2.8.4",
+    "webpack-dev-middleware": "^7.4.6"
   }
 }
