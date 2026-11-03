@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mongodb:
-        image: mongo:6.0
+        image: mongo:7.0@sha256:8bb4442761a63a8dda452744082cdac9644b429807eb977b42324a63cef59ca4
         ports: ["27017:27017"]
         options: --health-cmd="mongosh --eval 'db.adminCommand(\"ping\")'" --health-interval=10s --health-timeout=5s --health-retries=5
     steps:

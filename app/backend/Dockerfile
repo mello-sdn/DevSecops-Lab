@@ -10,10 +10,9 @@ FROM node:26-alpine@sha256:143494b1da2945f061539253adc65e4f1569ddf07da2d384c022c
 
 ENV NODE_ENV=production
 
-# Remove vulnerable global npm modules
-RUN rm -rf /usr/local/lib/node_modules/npm/node_modules/brace-expansion \
-           /usr/local/lib/node_modules/npm/node_modules/undici \
-           /usr/local/lib/node_modules/npm/node_modules/http-cache-semantics
+# npm is only needed at build time: remove it entirely from the runtime image
+# (partially deleting its modules makes the first "npm run" of a new container crash)
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 WORKDIR /app
 
