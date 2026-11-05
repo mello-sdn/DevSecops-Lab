@@ -3,10 +3,8 @@ kind: Service
 
 metadata:
   name: mongodb 
-  namespace: mern-app
   labels:
     app: mongodb
-
 spec:
   clusterIP: None
   selector:
