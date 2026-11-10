@@ -30,5 +30,7 @@ Le projet avance par blocs logiques. Je valide un pilier technique avant de pass
 ---
 
 ## Documentation
-- [Threat model](docs/threat-model.md) — contre quoi je me protège *En cours*
+- [Threat model](docs/threat-model.md) — contre quoi je me protège
+- [Architecture Decision Records](docs/adr/) — mes décisions d'architecture *En cours*
+
 ---
