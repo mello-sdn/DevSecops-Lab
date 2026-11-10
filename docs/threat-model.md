@@ -33,11 +33,6 @@ poste de dev ni la plateforme GitHub, que je suppose fiables.
 | T2 | I / T | Accès non authentifié à la DB | MongoDB tourne sans authentification et le port 27017 est publié sur l'hôte : quiconque atteint ce port peut lire ou modifier les utilisateurs et les commandes | — | ❌ Aucune authentification sur la base → utilisateur et mot de passe dans un Secret, section Kubernetes |
 | T3 | T | Modification de l'image de base | Un tag mutable (`node:26-alpine`) pointe un jour vers une autre image, plus vulnérable ou compromise, sans que je m'en rende compte | Images de base épinglées par digest (`@sha256:…`) dans les Dockerfiles et le compose : le contenu est immuable | ✅ |
 
-### Application (backend)
-| ID | STRIDE | Menace | Scénario concret | Contrôle (preuve) | Statut |
-|---|---|---|---|---|---|
-| T6 | E / T / D | Upload de fichier dangereux | `POST /api/v1/upload` n'avait ni authentification ni limite de taille, et le nom du fichier stocké venait du client. Un anonyme envoyait `evil.html` (ou `evil.js`) déclaré `image/png` : le fichier était servi en `text/html` sur l'origine de l'app (stored XSS, CWE-434), ou remplissait le disque | `protect` + `admin` **avant** multer (rien n'est écrit sur le disque sans auth), 2 Mo max (multer) et 3 Mo (nginx), nom `UUID` + extension déduite d'une allowlist serveur (`.png`/`.jpg`) : un fichier est toujours servi en `image/*` avec `nosniff`. Tests 9 à 14 de `server.test.js` | 🟡 Le contenu n'est pas vérifié (magic bytes) et les fichiers restent sur le disque du conteneur → validation du contenu + S3, phase 3 bis |
-
 ### Pipeline (CI/CD)
 | ID | STRIDE | Menace | Scénario concret | Contrôle (preuve) | Statut |
 |---|---|---|---|---|---|
