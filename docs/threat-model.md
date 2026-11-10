@@ -1,5 +1,5 @@
 # Threat model — MERN DevSecOps Lab
-*09/11/2026 · Document vivant, mis à jour à chaque phase. Chaque menace a un ID stable (Tn) référencé dans les commits, PR et tests.*
+*10/11/2026 · Document vivant, mis à jour à chaque phase. Chaque menace a un ID stable (Tn) référencé dans les commits, PR et tests.*
 
 ## Pourquoi ce document
 Brancher des outils de sécurité ne suffit pas si on ne sait pas contre quoi on se protège.
@@ -38,6 +38,12 @@ poste de dev ni la plateforme GitHub, que je suppose fiables.
 |---|---|---|---|---|---|
 | T4 | I | Secret poussé en clair | Pour tester le paiement, je colle la clé Stripe (`sk_test_…`) directement dans le code du backend au lieu de passer par `process.env`, et je commit sans la retirer. Le `.gitignore` ne sert à rien, la clé est dans un fichier suivi, et même supprimée ensuite elle reste dans l'historique Git, avec la clé, n'importe qui peut appeler l'API Stripe du compte : créer ou rembourser des paiements | `.env` gitignoré, Gitleaks scanne tout l'historique (`fetch-depth: 0`) à chaque push et fait échouer le job | 🟡 Le secret est repéré seulement une fois poussé sur GitHub → hook pre-commit Gitleaks qui bloque le commit en local |
 | T5 | E | Dépendance ou image vulnérable | Une CVE HIGH/CRITICAL (ex. RCE) dans une lib npm ou une image de base, exploitable à travers l'app | Trivy scanne les images backend, frontend et nginx (HIGH/CRITICAL) ; `script_alert.py` fait échouer la CI (`exit(1)`) et une alerte est envoyé sur Discord | 🟡 Trivy ne voit pas les libs npm du frontend (l'image finale ne contient que le bundle JS, sans `package-lock.json`), l'image Mongo n'est pas scannée et rien n'est rescanné sans push → scan du lockfile frontend (`trivy fs`), scan de l'image Mongo, scan planifié et Dependabot |
+
+### Application (backend)
+| ID | STRIDE | Menace | Scénario concret | Contrôle (preuve) | Statut |
+|---|---|---|---|---|---|
+| T6 | E / T / D | Upload de fichier dangereux | `POST /api/v1/upload` n'avait ni authentification ni limite de taille, et le nom du fichier stocké venait du client. Un anonyme envoyait `evil.html` (ou `evil.js`) déclaré `image/png` : le fichier était servi en `text/html` sur l'origine de l'app (stored XSS, CWE-434), ou remplissait le disque | `protect` + `admin` **avant** multer (rien n'est écrit sur le disque sans auth), 2 Mo max (multer) et 3 Mo (nginx), nom `UUID` + extension déduite d'une allowlist serveur (`.png`/`.jpg`) : un fichier est toujours servi en `image/*` avec `nosniff`. Tests 9 à 14 de `server.test.js` | 🟡 Le contenu n'est pas vérifié (magic bytes) et les fichiers restent sur le disque du conteneur → validation du contenu + S3 |
+
 
 ### Kubernetes
 | ID | STRIDE | Menace | Scénario concret | Contrôle (preuve) | Statut |
