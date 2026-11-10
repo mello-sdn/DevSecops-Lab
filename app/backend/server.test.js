@@ -2,6 +2,10 @@ import mongoose from 'mongoose';
 import supertest from 'supertest';
 import { app } from './server.js';
 import Product from './models/productModel.js';
+import User from './models/userModel.js';
+import fs from 'fs';
+import path from 'path';
+import { MAX_UPLOAD_SIZE } from './routes/uploadRoutes.js';
 
 // Use MongoDB from docker-compose (local) or service container (CI)
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/test';
@@ -143,5 +147,100 @@ describe('Middleware et routes', () => {
       .expect(404);
 
     expect(res.body.message).toContain('Not Found');
+  });
+});
+
+describe('Upload d\'images (T6)', () => {
+  const PNG_BYTES = Buffer.from('89504e470d0a1a0a', 'hex');
+  const uploadedFiles = [];
+
+  // Register a user and return its JWT cookie; optionally promote it to admin
+  const getCookie = async (isAdmin) => {
+    const email = isAdmin ? 'admin@test.com' : 'user@test.com';
+    const res = await supertest(app)
+      .post('/api/v1/users')
+      .send({ name: 'Test', email, password: 'password123' });
+    if (isAdmin) {
+      await User.updateOne({ email }, { isAdmin: true });
+    }
+    return res.headers['set-cookie'];
+  };
+
+  const trackUpload = (res) => {
+    if (res.body.imageUrl) {
+      uploadedFiles.push(path.join('uploads', path.basename(res.body.imageUrl)));
+    }
+  };
+
+  beforeAll(() => {
+    fs.mkdirSync('uploads', { recursive: true });
+  });
+
+  afterAll(() => {
+    uploadedFiles.forEach((file) => fs.rmSync(file, { force: true }));
+  });
+
+  it('9. Upload sans cookie renvoie 401', async () => {
+    await supertest(app)
+      .post('/api/v1/upload')
+      .attach('image', PNG_BYTES, { filename: 'a.png', contentType: 'image/png' })
+      .expect(401);
+  });
+
+  it('10. Upload par un utilisateur non admin renvoie 401', async () => {
+    const cookie = await getCookie(false);
+    await supertest(app)
+      .post('/api/v1/upload')
+      .set('Cookie', cookie)
+      .attach('image', PNG_BYTES, { filename: 'a.png', contentType: 'image/png' })
+      .expect(401);
+  });
+
+  it('11. Upload admin d\'un type non image renvoie 400', async () => {
+    const cookie = await getCookie(true);
+    const res = await supertest(app)
+      .post('/api/v1/upload')
+      .set('Cookie', cookie)
+      .attach('image', Buffer.from('hello'), { filename: 'a.txt', contentType: 'text/plain' })
+      .expect(400);
+
+    expect(res.body.message).toContain('Images only');
+  });
+
+  it('12. Upload admin d\'un fichier trop gros renvoie 413', async () => {
+    const cookie = await getCookie(true);
+    await supertest(app)
+      .post('/api/v1/upload')
+      .set('Cookie', cookie)
+      .attach('image', Buffer.alloc(MAX_UPLOAD_SIZE + 1), { filename: 'big.png', contentType: 'image/png' })
+      .expect(413);
+  });
+
+  it('13. Upload admin d\'un PNG renvoie 201 avec un nom généré par le serveur', async () => {
+    const cookie = await getCookie(true);
+    const res = await supertest(app)
+      .post('/api/v1/upload')
+      .set('Cookie', cookie)
+      .attach('image', PNG_BYTES, { filename: 'photo-originale.png', contentType: 'image/png' })
+      .expect(201);
+    trackUpload(res);
+
+    expect(res.body.imageUrl).toMatch(/^\/uploads\/[0-9a-f-]{36}\.png$/);
+    expect(res.body.imageUrl).not.toContain('photo-originale');
+  });
+
+  it('14. Un .html déclaré image/png est stocké en .png (pas de stored XSS)', async () => {
+    const cookie = await getCookie(true);
+    const res = await supertest(app)
+      .post('/api/v1/upload')
+      .set('Cookie', cookie)
+      .attach('image', Buffer.from('<script>alert(1)</script>'), { filename: 'evil.html', contentType: 'image/png' })
+      .expect(201);
+    trackUpload(res);
+
+    expect(res.body.imageUrl).toMatch(/\.png$/);
+
+    const served = await supertest(app).get(res.body.imageUrl).expect(200);
+    expect(served.headers['content-type']).toBe('image/png');
   });
 });
